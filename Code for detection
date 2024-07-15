@@ -1,0 +1,484 @@
+/*Machine Learning code for human detection*/
+
+import numpy as np import sys
+import time import serial import cv2
+
+
+arduino = serial.Serial('COM6', 9600) time.sleep(2) # Wait for initialization print("Initialized")
+
+
+directions = {
+
+1: "Left Back",
+
+2: "Backward",
+
+3: "Backward Right",
+
+4: "Left",
+
+5: "Stay Still",
+
+6: "Right",
+
+7: "Forward Left",
+
+8: "Forward",
+
+9: "Forward Right"
+
+}
+ 
+def send_direction(direction): print("Direction:", directions[direction]) arduino.write(bytes([direction]))
+
+
+def compute_direction(bound, init_area=40000): center = (320, 240)
+curr = (bound[0] + bound[2] / 2, bound[1] + bound[3] / 2) out = 5  # Stay still by default
+
+
+if bound[2] * bound[3] > init_area + 5000 or bound[1] < 50:
+
+out = 2 # Move backward if object is approaching or too close
+
+elif bound[2] * bound[3] < init_area - 5000 or (bound[1] + bound[3]) > 430: out = 8  # Move forward if object is moving away or too far
+elif curr[0] > center[0] + 100:
+
+out = 6 # Move right if object is to the right of the center elif curr[0] < center[0] - 100:
+out = 4 # Move left if object is to the left of the center elif curr[1] < center[1] - 50:
+out = 7 # Move forward-left if object is above the center elif curr[1] > center[1] + 50:
+out = 9 # Move forward-right if object is below the center return out
+
+
+def detect_and_display(frame):
+ 
+gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30), maxSize=(500, 500))
+
+
+if len(faces) > 0: max_area = -1
+max_area_idx = 0
+
+for i, (x, y, w, h) in enumerate(faces): if w * h > max_area:
+max_area = w * h max_area_idx = i
+
+
+rect = faces[max_area_idx]
+cv2.rectangle(frame, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (0, 255, 0), 2) cv2.putText(frame, f'x: {rect[0] + rect[2] / 2} y: {rect[1] + rect[3] / 2} size: {rect[2] *
+rect[3]}',
+
+(rect[0], rect[1] + rect[3]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
+
+
+
+direction = compute_direction(rect) send_direction(direction)
+else:
+
+print('Search...')
+
+send_direction(5) # No face detected, stay still
+
+
+
+cv2.imshow('frame', frame)
+ 
+cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+
+
+try:
+
+cap = cv2.VideoCapture(1) if not cap.isOpened():
+raise IOError("Failed to open camera")
+
+
+
+while True:
+
+ret, frame = cap.read() if not ret:
+print("Failed to retrieve frame") break
+
+
+detect_and_display(frame)
+
+
+
+if cv2.waitKey(1) == 27: # ESC key break
+
+
+except Exception as e: print("Error:", e)
+
+
+finally: cap.release()
+ 
+cv2.destroyAllWindows() arduino.close()
+
+
+/* code for smart cart system movement.*/
+
+const int leftMotorPin1 = 2; const int leftMotorPin2 = 3; const int rightMotorPin1 = 4; const int rightMotorPin2 = 5; const int ledPin = 13; // LED pin int data[1];
+
+
+long duration; int distance;
+
+
+const int trigPin = 10; const int echoPin = 11;
+
+
+void setup() { Serial.begin(9600);
+
+
+pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output pinMode(echoPin, INPUT);
+
+
+pinMode(leftMotorPin1, OUTPUT);
+ 
+pinMode(leftMotorPin2, OUTPUT); pinMode(rightMotorPin1, OUTPUT); pinMode(rightMotorPin2, OUTPUT); pinMode(ledPin, OUTPUT); // Set LED pin as output pinMode(8, OUTPUT);
+digitalWrite(8 , HIGH); pinMode(7, OUTPUT); digitalWrite(7 , HIGH);
+}
+
+void loop() {
+
+if (Serial.available() > 0) { data[0] = Serial.read(); digitalWrite(trigPin, LOW); delayMicroseconds(2);
+// Sets the trigPin on HIGH state for 10 micro seconds digitalWrite(trigPin, HIGH);
+delayMicroseconds(10); digitalWrite(trigPin, LOW);
+// Reads the echoPin, returns the sound wave travel time in microseconds duration = pulseIn(echoPin, HIGH);
+// Calculating the distance distance = duration * 0.034 / 2; if (distance >10){
+int direction = data[0];
+ 
+processDirection(direction);
+
+
+
+// Turn on the LED while the robot is moving
+
+if (direction != '5') { // Assuming '5' corresponds to staying still digitalWrite(ledPin, HIGH); // Turn on LED
+} else {
+
+digitalWrite(ledPin, LOW); // Turn off LED when staying still
+
+}
+
+}
+
+}
+
+}
+
+
+
+void processDirection(int direction) { switch (direction) {
+case '1': // Back Left moveBackLeft();
+
+
+break;
+
+case '2': // Back moveBack();
+
+
+break;
+
+case '3': // Back right moveBackRight();
+ 
+break;
+
+case '4': // Left moveLeft();
+
+
+break;
+
+case '5': // Stay still stopMoving();
+
+
+break;
+
+case '6': // Right moveRight();
+
+
+break;
+
+case '7': // Front Left moveForwardLeft();
+
+
+break;
+
+case '8': // Forward moveForward();
+
+
+break;
+
+case '9': // Forward right moveForwardRight();
+ 
+break;
+
+default: // Unknown direction or stay still stopMoving();
+
+
+break;
+
+}
+
+}
+
+
+
+void moveForward() { digitalWrite(leftMotorPin1, HIGH); digitalWrite(leftMotorPin2, LOW); digitalWrite(rightMotorPin1, HIGH); digitalWrite(rightMotorPin2, LOW); delay(80);
+}
+
+
+
+void moveBack() { digitalWrite(leftMotorPin1, LOW); digitalWrite(leftMotorPin2, HIGH); digitalWrite(rightMotorPin1, LOW); digitalWrite(rightMotorPin2, HIGH);
+ 
+void moveLeft() { digitalWrite(leftMotorPin1, LOW); digitalWrite(leftMotorPin2, HIGH); digitalWrite(rightMotorPin1, HIGH); digitalWrite(rightMotorPin2, LOW); delay(80);
+}
+
+
+
+void moveRight() { digitalWrite(leftMotorPin1, HIGH); digitalWrite(leftMotorPin2, LOW); digitalWrite(rightMotorPin1, LOW); digitalWrite(rightMotorPin2, HIGH); delay(80);
+}
+
+
+
+void moveForwardLeft() { digitalWrite(leftMotorPin1, LOW); digitalWrite(leftMotorPin2, HIGH); digitalWrite(rightMotorPin1, HIGH); digitalWrite(rightMotorPin2, LOW);
+ 
+void moveForwardRight() { digitalWrite(leftMotorPin1, HIGH); digitalWrite(leftMotorPin2, LOW); digitalWrite(rightMotorPin1, LOW); digitalWrite(rightMotorPin2, HIGH); delay(80);
+}
+
+void moveBackLeft() { digitalWrite(leftMotorPin1, LOW); digitalWrite(leftMotorPin2, HIGH); digitalWrite(rightMotorPin1, LOW); digitalWrite(rightMotorPin2, HIGH); delay(80);
+}
+
+void moveBackRight() { digitalWrite(leftMotorPin1, HIGH); digitalWrite(leftMotorPin2, LOW); digitalWrite(rightMotorPin1, HIGH); digitalWrite(rightMotorPin2, LOW); delay(80);
+}
+
+void stopMoving() { digitalWrite(leftMotorPin1, LOW);
+ 
+digitalWrite(leftMotorPin2, LOW); digitalWrite(rightMotorPin1, LOW); digitalWrite(rightMotorPin2, LOW); delay(80);
+}
+
+/* Code for payment system */
+
+Ns #include <SPI.h> #include <MFRC522.h> #include <LiquidCrystal.h>
+
+
+const int rs = 7, en = 6, d4 = 5, d5 = 4, d6 = 3, d7 = 2 ; LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+const int remove_button = A0; const int add_button = A1; const int reset_button = A2; const int buzzer_Pin = A3; #define SS_PIN 10
+#define RST_PIN 9
+
+MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance.
+
+
+
+struct item
+
+{
+String item_name;
+String item_number;
+ 
+int item_price;
+
+};
+
+
+
+const int number_of_item = 4;
+
+const item item_list[number_of_item]=
+
+{
+
+//Item Name	Item RFID Number Item Price
+
+{"Tata salt",	"2E 07 1E 85",	100},
+
+{"Milk Powder", "B8 D6 4C 33",	50},
+
+{"Bournvita",	"71 B6 1D 85",	20},
+
+{"Ball_Pen",	"F7 AF 51 1B",	10},
+
+};
+
+
+
+int bill_amount = 0;
+
+int remove_buttonState = 0; int add_buttonState = 0;
+int reset_buttonState = 0; int add_item_flag = 1;
+int remove_item_flag = 0; void setup()
+{
+
+lcd.begin(16, 2); pinMode(remove_button, INPUT); pinMode(reset_button, INPUT);
+ 
+pinMode(add_button, INPUT); pinMode(buzzer_Pin, OUTPUT);
+Serial.begin(9600); // Initiate a serial communication SPI.begin();	// Initiate SPI bus mfrc522.PCD_Init(); // Initiate MFRC522
+Serial.println("Approximate your card to the reader..."); Serial.println();
+digitalWrite(buzzer_Pin, LOW);
+
+
+
+lcd.clear();
+
+// Set cursor (Column, Row) lcd.setCursor(0, 0); lcd.print("Smart Trolley"); lcd.setCursor(0,1); lcd.print("Billing System"); delay(2000);
+lcd.clear();
+
+// Set cursor (Column, Row) lcd.setCursor(0, 0); lcd.print("Start purchasing"); lcd.setCursor(0,1); lcd.print("your item"); delay(100);
+}
+ 
+void loop()
+
+{
+
+remove_buttonState = digitalRead(remove_button); add_buttonState = digitalRead(add_button); reset_buttonState = digitalRead(reset_button); if(remove_buttonState)
+{
+
+add_item_flag = 0;
+
+remove_item_flag = 1; lcd.clear();
+// Set cursor (Column, Row) lcd.setCursor(0, 0); lcd.print("You Can now"); lcd.setCursor(0,1); lcd.print("Remove your item"); delay(2000);
+}
+
+else if(add_buttonState)
+
+{
+
+add_item_flag = 1;
+
+remove_item_flag = 0; lcd.clear();
+// Set cursor (Column, Row) lcd.setCursor(0, 0);
+ 
+lcd.print("You Can now"); lcd.setCursor(0,1); lcd.print("add your item"); delay(2000);
+}
+
+else if(reset_buttonState)
+
+{
+
+lcd.clear();
+
+// Set cursor (Column, Row)
+
+
+
+lcd.setCursor(0, 0); lcd.print("please pay"); lcd.setCursor(0,1); lcd.print(bill_amount); delay(3000);
+lcd.setCursor(0, 0); lcd.print("Thankyou for"); lcd.setCursor(0,1); lcd.print("Shopping"); delay(2000);
+
+
+lcd.setCursor(0, 0); lcd.print("Resetting"); lcd.setCursor(0,1);
+ 
+lcd.print("Trolley data"); delay(2000);
+lcd.clear();
+
+// Set cursor (Column, Row) lcd.setCursor(0, 0); lcd.print("Start Purchasing"); lcd.setCursor(0,1); lcd.print("Your item"); delay(2000);
+bill_amount = 0;
+
+}
+
+
+
+// Look for new cards
+
+if ( ! mfrc522.PICC_IsNewCardPresent())
+
+{
+
+return;
+
+}
+
+// Select one of the cards
+
+if ( ! mfrc522.PICC_ReadCardSerial())
+
+{
+
+return;
+
+}
+
+//Show UID on serial monitor Serial.print("UID tag :");
+ 
+String content= ""; byte letter;
+for (byte i = 0; i < mfrc522.uid.size; i++)
+
+{
+
+Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "); Serial.print(mfrc522.uid.uidByte[i], HEX); content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ")); content.concat(String(mfrc522.uid.uidByte[i], HEX));
+}
+
+Serial.println(); Serial.print("Message : "); content.toUpperCase();
+for(int i = 0 ;i < sizeof(item_list) ; i++)
+
+{
+
+if (content.substring(1) == item_list[i].item_number) //change here the UID of the card/cards that you want to give access
+{
+
+if(add_item_flag == 1)
+
+{
+
+bill_amount = bill_amount + item_list[i].item_price;
+
+//	Serial.println("you have purchased = " + item_list[i].item_name);
+
+//	Serial.print("Purchased item price");
+
+//	Serial.println(item_list[i].item_price);
+
+//	Serial.print("Total billing amount");
+ 
+//	Serial.println(bill_amount);
+
+//		delay(1000); digitalWrite(buzzer_Pin, HIGH); delay(500); digitalWrite(buzzer_Pin, LOW); lcd.clear();
+// Set cursor (Column, Row) lcd.setCursor(0, 0); lcd.print(item_list[i].item_name ); lcd.setCursor(0,1);
+lcd.print(String(item_list[i].item_price)+" Rs"); delay(2000);
+}
+
+else if(remove_item_flag == 1)
+
+{
+
+if(bill_amount > 0)
+
+{
+
+bill_amount = bill_amount - item_list[i].item_price;
+
+//	Serial.println("you have purchased = " + item_list[i].item_name);
+
+//	Serial.print("Purchased item price");
+
+//	Serial.println(item_list[i].item_price);
+
+//	Serial.print("Total billing amount");
+
+//	Serial.println(bill_amount);
+
+//	delay(1000);
+ 
+digitalWrite(buzzer_Pin, HIGH); delay(500); digitalWrite(buzzer_Pin, LOW); lcd.clear();
+// Set cursor (Column, Row) lcd.setCursor(0, 0); lcd.print(item_list[i].item_name ); lcd.setCursor(0,1); lcd.print("removed"); delay(2000);
+
+
+}
+
+else
+
+{
+
+lcd.clear();
+
+// Set cursor (Column, Row) lcd.setCursor(0, 0); lcd.print("Your trolley is" ); lcd.setCursor(0,1); lcd.print("empty now"); delay(2000);
+}
+
+}
+
+}
+ 
+}
+
+lcd.clear();
+
+// Set cursor (Column, Row) lcd.setCursor(0, 0); lcd.print("Total Billing"); lcd.setCursor(0,1);
+lcd.print(String(bill_amount)+" Rs"); delay(2000);
+}
